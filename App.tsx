@@ -3,7 +3,7 @@ import { fetchDailyInspirationBatch } from './services/geminiService';
 import { InspirationData, LoadingState } from './types';
 import { Card } from './components/Card';
 import { LoadingSpinner } from './components/LoadingSpinner';
-import { Sparkles, Quote, Brain, Zap, RefreshCw, AlertCircle, Bell, BellRing, Share2, Check, Lock } from 'lucide-react';
+import { Sparkles, Quote, Brain, Zap, RefreshCw, AlertCircle, Bell, BellRing, Share2, Check, Lock, Download } from 'lucide-react';
 
 const App: React.FC = () => {
   const [data, setData] = useState<InspirationData | null>(null);
@@ -11,6 +11,9 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // PWA Install Prompt State
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   // Queue state - zásobník ďalších inšpirácií
   const [queue, setQueue] = useState<InspirationData[]>([]);
@@ -121,8 +124,36 @@ const App: React.FC = () => {
     if ("Notification" in window && Notification.permission === "granted") {
       setNotificationsEnabled(true);
     }
+
+    // PWA Install Event Listener
+    const handleBeforeInstallPrompt = (e: any) => {
+      // Prevent the mini-infobar from appearing on mobile
+      e.preventDefault();
+      // Stash the event so it can be triggered later.
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+
+    // Show the install prompt
+    deferredPrompt.prompt();
+
+    // Wait for the user to respond to the prompt
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`User response to the install prompt: ${outcome}`);
+
+    // We've used the prompt, and can't use it again, throw it away
+    setDeferredPrompt(null);
+  };
 
   const handleShare = async () => {
     if (!data) return;
@@ -173,7 +204,18 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-indigo-100 selection:text-indigo-900 pb-20">
 
       <header className="pt-16 pb-12 px-6 text-center max-w-4xl mx-auto relative">
-        <div className="absolute top-6 right-6 md:top-10 md:right-10">
+        <div className="absolute top-6 right-6 md:top-10 md:right-10 flex gap-2">
+          {/* Install Button - Shows only if install is available */}
+          {deferredPrompt && (
+             <button
+             onClick={handleInstallClick}
+             className="p-2 rounded-full bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm transition-all duration-300 animate-pulse"
+             title="Nainštalovať aplikáciu"
+           >
+             <Download className="w-5 h-5" />
+           </button>
+          )}
+
            <button
             onClick={requestNotificationPermission}
             disabled={notificationsEnabled}
