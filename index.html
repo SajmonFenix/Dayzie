@@ -8,6 +8,8 @@
     <!-- PWA Settings -->
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#ffffff" />
+    <!-- Oprava deprecated warningu + zachovanie iOS podpory -->
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Denný Zen" />
@@ -41,5 +43,7 @@
 </head>
   <body class="bg-slate-50 text-slate-900 antialiased overscroll-none">
     <div id="root"></div>
+    <!-- TENTO RIADOK TU CHÝBAL a spôsobil bielu obrazovku -->
+    <script type="module" src="/index.tsx"></script>
   </body>
 </html>
