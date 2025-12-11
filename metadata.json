@@ -1,0 +1,5 @@
+{
+  "name": "Daily Zen",
+  "description": "A minimalist application powered by Gemini to generate your daily motto, philosophical thought, and actionable motivation.",
+  "requestFramePermissions": []
+}
