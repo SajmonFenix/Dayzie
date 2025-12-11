@@ -16,7 +16,8 @@ const getApiKey = () => {
   return '';
 };
 
-const inspirationSchema: Schema = {
+// Schéma pre jednu položku (reused inside array)
+const singleInspirationSchema = {
   type: Type.OBJECT,
   properties: {
     motto: {
@@ -35,18 +36,23 @@ const inspirationSchema: Schema = {
   required: ["motto", "thought", "motivation"],
 };
 
-// Premenná pre inštanciu, aby sme ju nevytvárali pri každom volaní, ale až keď treba
+// Hlavná schéma je teraz POLE (Array)
+const batchInspirationSchema: Schema = {
+  type: Type.ARRAY,
+  items: singleInspirationSchema,
+};
+
+// Premenná pre inštanciu
 let aiInstance: GoogleGenAI | null = null;
 
-export const fetchDailyInspiration = async (): Promise<InspirationData> => {
+// Vracia pole inšpirácií
+export const fetchDailyInspirationBatch = async (): Promise<InspirationData[]> => {
   const apiKey = getApiKey();
 
-  // Ošetrenie chýbajúceho kľúča, aby aplikácia nespadla, ale vrátila chybu
   if (!apiKey) {
     throw new Error("API key is missing. Please check your VITE_API_KEY setting in Netlify.");
   }
 
-  // Inicializácia AI až v momente volania (Lazy loading)
   if (!aiInstance) {
     aiInstance = new GoogleGenAI({ apiKey });
   }
@@ -54,12 +60,13 @@ export const fetchDailyInspiration = async (): Promise<InspirationData> => {
   try {
     const response = await aiInstance.models.generateContent({
       model: 'gemini-2.5-flash',
-      contents: 'Vygeneruj jedinečnú dennú inšpiráciu v slovenskom jazyku.',
+      // Pýtame si 6 inšpirácií naraz
+      contents: 'Vygeneruj sadu 6 rôznych denných inšpirácií v slovenskom jazyku. Musia byť rôznorodé (stoicizmus, moderná psychológia, zen, produktivita).',
       config: {
         responseMimeType: 'application/json',
-        responseSchema: inspirationSchema,
-        systemInstruction: "Si múdry, empatický a inšpiratívny životný kouč. Tvojím cieľom je poskytovať svieži, neklíšovitý a zmysluplný obsah, ktorý človeka povzbudí do dňa.",
-        temperature: 1.1,
+        responseSchema: batchInspirationSchema,
+        systemInstruction: "Si múdry, empatický a inšpiratívny životný kouč. Tvojím cieľom je poskytovať svieži, neklíšovitý a zmysluplný obsah.",
+        temperature: 1.2, // Vyššia teplota pre väčšiu variabilitu medzi 6 položkami
       },
     });
 
@@ -68,9 +75,9 @@ export const fetchDailyInspiration = async (): Promise<InspirationData> => {
       throw new Error("No content generated");
     }
 
-    return JSON.parse(text) as InspirationData;
+    return JSON.parse(text) as InspirationData[];
   } catch (error) {
-    console.error("Error fetching inspiration:", error);
+    console.error("Error fetching inspiration batch:", error);
     throw error;
   }
 };
