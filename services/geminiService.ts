@@ -1,7 +1,29 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { InspirationData } from "../types";
 
-const apiKey = process.env.API_KEY || '';
+// Získanie kľúča - musíme skontrolovať viacero možností, pretože Netlify a Vite
+// vyžadujú predponu VITE_ pre premenné viditeľné v prehliadači.
+const getApiKey = () => {
+  // 1. Skúsime moderný prístup cez import.meta (Vite štandard)
+  // @ts-ignore
+  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_KEY) {
+    // @ts-ignore
+    return import.meta.env.VITE_API_KEY;
+  }
+
+  // 2. Skúsime process.env (ak to bundler nahradí)
+  if (typeof process !== 'undefined' && process.env) {
+    return process.env.VITE_API_KEY || process.env.REACT_APP_API_KEY || process.env.API_KEY;
+  }
+
+  return '';
+};
+
+const apiKey = getApiKey();
+
+if (!apiKey) {
+  console.warn("API kľúč sa nenašiel. Uistite sa, že máte v Netlify nastavenú premennú VITE_API_KEY.");
+}
 
 const ai = new GoogleGenAI({ apiKey });
 
