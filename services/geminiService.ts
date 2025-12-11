@@ -59,7 +59,7 @@ export const fetchDailyInspirationBatch = async (): Promise<InspirationData[]> =
 
   try {
     const response = await aiInstance.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-2.5-flash-lite',
       // Pýtame si 6 inšpirácií naraz
       contents: 'Vygeneruj sadu 6 rôznych denných inšpirácií v slovenskom jazyku. Musia byť rôznorodé (stoicizmus, moderná psychológia, zen, produktivita).',
       config: {
