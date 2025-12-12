@@ -3,7 +3,7 @@ import { fetchDailyInspirationBatch } from './services/geminiService';
 import { InspirationData, LoadingState } from './types';
 import { Card } from './components/Card';
 import { LoadingSpinner } from './components/LoadingSpinner';
-import { Sparkles, Quote, Brain, Zap, RefreshCw, AlertCircle, Bell, BellRing, Share2, Check, Lock, Download } from 'lucide-react';
+import { Sparkles, Quote, Brain, Zap, RefreshCw, AlertCircle, Bell, BellRing, Share2, Check, Lock, Download, X } from 'lucide-react';
 
 const App: React.FC = () => {
   const [data, setData] = useState<InspirationData | null>(null);
@@ -14,6 +14,10 @@ const App: React.FC = () => {
 
   // PWA Install Prompt State
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isIOS, setIsIOS] = useState(false);
+  const [showInstallHelp, setShowInstallHelp] = useState(false);
+  // Nový stav pre zobrazenie spodného bannera
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
 
   // Queue state - zásobník ďalších inšpirácií
   const [queue, setQueue] = useState<InspirationData[]>([]);
@@ -84,7 +88,7 @@ const App: React.FC = () => {
       if (errString.includes("429") || errMessage.includes("429")) {
         errorMessage = "Server je momentálne vyťažený. Skúste to prosím neskôr.";
       } else if (errMessage.includes("API key")) {
-        errorMessage = "Problém s API kľúčom.";
+        errorMessage = "Problém s API kľúčom. Skontrolujte súbor env.js.";
       }
 
       setError(errorMessage);
@@ -125,12 +129,18 @@ const App: React.FC = () => {
       setNotificationsEnabled(true);
     }
 
-    // PWA Install Event Listener
+    // Detect iOS
+    const isIosDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    setIsIOS(isIosDevice);
+
+    // PWA Install Event Listener (Android/Desktop)
     const handleBeforeInstallPrompt = (e: any) => {
-      // Prevent the mini-infobar from appearing on mobile
+      // Prevent Chrome 67 and earlier from automatically showing the prompt
       e.preventDefault();
       // Stash the event so it can be triggered later.
       setDeferredPrompt(e);
+      // Zobrazíme náš banner
+      setShowInstallBanner(true);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -142,7 +152,19 @@ const App: React.FC = () => {
   }, []);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
+    if (isIOS) {
+      setShowInstallHelp(true);
+      return;
+    }
+
+    if (!deferredPrompt) {
+      // Ak nie je prompt (už nainštalované alebo nepodporované), zobrazíme help pre istotu
+      setShowInstallHelp(true);
+      return;
+    }
+
+    // Hide our custom banner
+    setShowInstallBanner(false);
 
     // Show the install prompt
     deferredPrompt.prompt();
@@ -201,12 +223,83 @@ const App: React.FC = () => {
   const currentDate = new Date().toLocaleDateString('sk-SK', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-indigo-100 selection:text-indigo-900 pb-20">
+    <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-indigo-100 selection:text-indigo-900 pb-20 relative">
+
+      {/* Install Help Modal (iOS / Fallback) */}
+      {showInstallHelp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl relative">
+            <button onClick={() => setShowInstallHelp(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+              <X className="w-5 h-5" />
+            </button>
+            <h3 className="text-xl font-serif font-bold text-slate-900 mb-4">Ako nainštalovať?</h3>
+
+            {isIOS ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-slate-100 rounded-lg"><Share2 className="w-5 h-5 text-indigo-600" /></div>
+                  <p className="text-slate-600 text-sm">1. Kliknite na tlačidlo <strong>Zdieľať</strong> v lište prehliadača.</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-slate-100 rounded-lg"><Download className="w-5 h-5 text-indigo-600" /></div>
+                  <p className="text-slate-600 text-sm">2. Vyberte možnosť <strong>Pridať na plochu</strong>.</p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                 <p className="text-slate-600">Ak sa tlačidlo inštalácie nezobrazilo automaticky:</p>
+                 <ul className="text-sm text-slate-500 list-disc list-inside space-y-1">
+                   <li>Skontrolujte v menu prehliadača možnosť "Inštalovať aplikáciu".</li>
+                   <li>Uistite sa, že používate Chrome, Brave alebo Edge.</li>
+                 </ul>
+              </div>
+            )}
+
+            <button
+              onClick={() => setShowInstallHelp(false)}
+              className="mt-6 w-full py-2 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700"
+            >
+              Rozumiem
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* NEW: Floating Install Banner (Android / Chrome Desktop) */}
+      {showInstallBanner && !isIOS && (
+        <div className="fixed bottom-4 left-4 right-4 z-40 md:left-auto md:right-8 md:w-96 animate-slide-up">
+           <div className="bg-slate-900 text-white p-4 rounded-2xl shadow-xl flex items-center justify-between gap-4">
+             <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center">
+                  <span className="font-serif font-bold">Z</span>
+                </div>
+                <div>
+                  <p className="font-medium text-sm">Nainštalovať Denný Zen</p>
+                  <p className="text-xs text-slate-400">Pre lepší zážitok bez lišty prehliadača</p>
+                </div>
+             </div>
+             <div className="flex gap-2">
+               <button
+                 onClick={() => setShowInstallBanner(false)}
+                 className="p-2 text-slate-400 hover:text-white"
+               >
+                 <X className="w-5 h-5" />
+               </button>
+               <button
+                 onClick={handleInstallClick}
+                 className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-medium transition-colors"
+               >
+                 Inštalovať
+               </button>
+             </div>
+           </div>
+        </div>
+      )}
 
       <header className="pt-16 pb-12 px-6 text-center max-w-4xl mx-auto relative">
         <div className="absolute top-6 right-6 md:top-10 md:right-10 flex gap-2">
-          {/* Install Button - Shows only if install is available */}
-          {deferredPrompt && (
+           {/* Header Install Button - Always show on iOS or if deferredPrompt is ready */}
+           {(deferredPrompt || isIOS) && (
              <button
              onClick={handleInstallClick}
              className="p-2 rounded-full bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm transition-all duration-300 animate-pulse"

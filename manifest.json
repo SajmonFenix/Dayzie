@@ -1,6 +1,8 @@
 {
   "short_name": "Denný Zen",
   "name": "Denný Zen - Inšpirácia",
+  "description": "Denná dávka inšpirácie, mott a motivácie poháňaná AI.",
+  "id": "/",
   "icons": [
     {
       "src": "/dayzie192.png",
@@ -17,6 +19,23 @@
   ],
   "start_url": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "theme_color": "#ffffff",
-  "background_color": "#f8fafc"
+  "background_color": "#f8fafc",
+  "screenshots": [
+    {
+      "src": "/dayzie512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Denný Zen aplikácia"
+    },
+    {
+      "src": "/dayzie512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Denný Zen mobile"
+    }
+  ]
 }
